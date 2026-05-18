@@ -1,6 +1,10 @@
-﻿using CarService.DL.Interfaces;
+﻿using CarService.DL.Infrastructure.HostedServices;
+using CarService.DL.Interfaces;
+using CarService.DL.Kafka;
 using CarService.DL.Repositories;
 using CarService.Models.Configurations;
+using CarService.Models.Responses;
+using CarService3.DL.Interfaces;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Bson;
@@ -11,12 +15,13 @@ namespace CarService.DL
 {
     public static class DependencyInjection
     {
-        public static IServiceCollection
-    AddDataLayer(this IServiceCollection services, IConfiguration configs)
+        public static IServiceCollection AddDataLayer(this IServiceCollection services, IConfiguration configs)
         {
             BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
-            // Register data layer services here
+
             services
+                .AddHostedService<BackgroundWorker>()
+                .AddHostedService<HostedWorker>()
                 .AddConfigurations(configs)
                 .AddSingleton<ICarRepository, CarLocalRepository>()
                 .AddSingleton<ICarRepository, CarMongoRepository>()
@@ -24,14 +29,21 @@ namespace CarService.DL
 
             return services;
         }
-        private static IServiceCollection
-            AddConfigurations(this IServiceCollection services, IConfiguration configs) 
+
+        private static IServiceCollection AddConfigurations(this IServiceCollection services, IConfiguration configs)
         {
-            // Register data layer services here
             services.Configure<MongoDbConfiguration>(configs.GetSection(nameof(MongoDbConfiguration)));
+
+            // REGISTER KafkaSettings
+            var kafkaSettings = configs.GetSection(nameof(KafkaSettings)).Get<KafkaSettings>();
+            services.AddSingleton(kafkaSettings);
+
+            // REGISTER Kafka Producer with SellCarResult
+            services.AddSingleton(sp => new GenericKafkaProducer<string, SellCarResult>(kafkaSettings));
+
+            services.AddHostedService<KafkaConsumerWorker>();
 
             return services;
         }
-
     }
 }

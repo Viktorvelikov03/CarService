@@ -1,20 +1,19 @@
 ﻿using CarService.BL.Interfaces;
 using CarService.BL.Services;
+using CarService.DL.Kafka;
+using CarService3.BL.Interfaces;
+using CarService3.BL.Services;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace CarService.BL
 {
     public static class DependencyInjection
     {
-        public static IServiceCollection
-            AddBusinessLayer(this IServiceCollection services)
+        public static IServiceCollection AddBusinessLayer(this IServiceCollection services)
         {
-            // Register data layer services here
             services.AddSingleton<ICarCrudService, CarCrudService>();
             services.AddSingleton<ISellCar, SellCar>();
-            services.AddSingleton<ICustomerCrudService,
-                CustomerCrudService>();
-
+            services.AddSingleton<ICustomerCrudService, CustomerService>();
             return services;
         }
     }
